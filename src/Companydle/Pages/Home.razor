@@ -1,4 +1,5 @@
 ﻿@page "/"
+@inject CompanyDataService CompanyDataService
 
 <PageTitle>Companydle</PageTitle>
 
@@ -12,8 +13,56 @@
 
     <HowToPlay />
 
-    <div class="alert alert-secondary mt-4 mb-0" role="status">
-        <span class="fw-semibold">Game board coming online.</span>
-        The daily puzzle will load here in the next build.
-    </div>
+    @if (_loading)
+    {
+        <div class="alert alert-secondary mt-4 mb-0" role="status">
+            Loading company data...
+        </div>
+    }
+    else if (_error is not null)
+    {
+        <div class="alert alert-danger mt-4 mb-0" role="alert">
+            <p class="mb-2"><span class="fw-semibold">Could not load company data.</span> @_error</p>
+            <button type="button" class="btn btn-outline-danger btn-sm" @onclick="LoadAsync">Retry</button>
+        </div>
+    }
+    else if (_data is not null)
+    {
+        <div class="alert alert-secondary mt-4 mb-0" role="status">
+            <span class="fw-semibold text-success-emphasis">Seed data loaded.</span>
+            @_data.Companies.Count companies, @CandidateCount answer candidates.
+            Snapshot @_data.DataAsOf.ToString("yyyy-MM-dd").
+        </div>
+    }
 </section>
+
+@code {
+    private CompanyData? _data;
+    private string? _error;
+    private bool _loading = true;
+
+    private int CandidateCount => _data?.Companies.Count(company => company.IsAnswerCandidate) ?? 0;
+
+    protected override Task OnInitializedAsync() => LoadAsync();
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        _error = null;
+
+        try
+        {
+            _data = await CompanyDataService.LoadAsync(forceReload: true);
+        }
+        catch (Exception exception)
+        {
+            _data = null;
+            _error = exception.Message;
+            Console.Error.WriteLine(exception);
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+}

@@ -22,4 +22,10 @@
     <ProjectReference Include="..\..\src\Companydle\Companydle.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Include="..\..\src\Companydle\wwwroot\data\companies.json"
+          Link="data\companies.json"
+          CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
 </Project>
