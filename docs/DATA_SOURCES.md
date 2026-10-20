@@ -6,16 +6,17 @@ runtime.
 
 - Snapshot date: `2026-10-20`
 - Currency: USD
-- 50 guessable companies, 40 answer candidates, 10 non-candidate companies
+- 150 guessable companies, 100 answer candidates, 50 non-candidate companies
 - Rounding: 3 significant figures for money, employees and market cap;
   effective tax rates are stored to one decimal place.
-- This is the phase-3 seed. Expansion to roughly 150-250 guessable companies
-  (100-150 answer candidates) is intentionally deferred until the seed has been
-  reviewed.
-- Every record currently has `confidence: "medium"`. Financial statements are
-  from primary SEC filings, but market caps and employee counts are secondary
-  snapshots. A record is not marked `high` unless every field has been checked
-  against a primary source.
+- The original 50-company seed was expanded with 100 additional companies. The
+  original 40 answer candidates remain first in `answerOrder`; the ten existing
+  non-candidates were promoted, and the 50 new candidates were appended. This
+  keeps every already-published or previous archive puzzle stable.
+- Every record has `confidence: "medium"`. Financial statements are from primary
+  SEC filings, but market caps and employee counts are secondary snapshots. A
+  record is not marked `high` unless every field has been checked against a
+  primary source.
 
 ## Financial statements
 
@@ -30,6 +31,10 @@ net profit, fiscal year) come from the SEC's XBRL data:
   archive. Those filings are still primary sources.
 - Filing index example:
   `https://www.sec.gov/Archives/edgar/data/1046179/000162828026025362/index.json`
+- The expanded dataset uses latest annual periods filed on or before
+  `2026-10-20`. Some foreign filers have a fiscal year that ends earlier than
+  their filing date; the period end and fiscal-year label are shown per company
+  in the table below.
 
 Net profit is the amount attributable to the parent where the filing provides
 that distinction; it can be negative. Revenue is total consolidated revenue as
@@ -48,7 +53,17 @@ reported, not a segment subtotal.
 | Toyota | FY2026 20-F instance; JPY amounts converted at the FY average below. |
 | Sony | FY2026 20-F instance. The group reports a net loss attributable to owners for the year (a large discontinued-operations loss), while pre-tax income and tax expense remain positive. The tax-rate field therefore uses the continuing-operations tax expense and pre-tax income. |
 | Infosys | FY2026 20-F instance; reports in USD, so no FX conversion is needed. |
-| Spotify | Reports in EUR; converted at the 2025 average. Spotify is a non-candidate seed company. |
+| Spotify | Reports in EUR; converted at the 2025 average. Promoted to a candidate in the expansion. |
+| GSK | FY2025 20-F XBRL instance. Reports in GBP; converted at `1.3192 USD/GBP`. Revenue `£32.667B`, pre-tax `£7.401B`, tax `£1.112B`, net profit `£5.716B`. |
+| HSBC | Pre-tax income and tax expense are `$29.907B` and `$6.776B`; net profit uses profit attributable to ordinary equity holders (`$21.102B`). |
+| UBS | Net profit uses profit attributable to owners (`$7.767B`); the group total profit line includes non-controlling interests. |
+| BHP | FY2026 20-F XBRL instance. Revenue `$58.760B`, pre-tax `$22.414B`, tax `$9.388B`, net profit attributable to owners `$9.833B`. |
+| HDFC Bank | FY2026 20-F XBRL instance, USD convenience translation. Revenue `$24.804B`, tax `$2.259B`, net profit `$7.511B`; pre-tax income is derived as net profit + tax = `$9.770B`. |
+| Petrobras | FY2025 20-F XBRL instance. Revenue `$89.195B`, pre-tax `$26.795B`, tax `$7.075B`, net profit `$19.634B`. |
+| Wipro | FY2026 20-F XBRL instance. Revenue `$9.871B`, pre-tax `$1.848B`, tax `$0.434B`, net profit `$1.407B`. |
+| Simon Property Group | The generic facts picker did not expose a total pre-tax line. Pre-tax income is derived as net profit + tax expense. |
+| ITW, PayPal, Phillips 66 | The same net-profit + tax derivation is used where the filing does not tag a consolidated pre-tax total. |
+| Booking Holdings | Net profit is the `NetIncomeLossAvailableToCommonStockholdersBasic` fallback because the consolidated `NetIncomeLoss` tag was not present in the selected facts. |
 
 ## Exchange rates
 
@@ -58,6 +73,7 @@ Non-USD income statements were converted with these rates:
 |---|---|---|
 | EUR | `1.1306 USD/EUR` | IRS 2025 yearly average currency exchange rate |
 | DKK | `6.6137 DKK/USD` | IRS 2025 yearly average currency exchange rate |
+| GBP | `1.3192 USD/GBP` | Federal Reserve H.10 2025 average |
 | JPY | `150.66772 JPY/USD` | Federal Reserve H.10 daily rates, average 2025-04-01 to 2026-03-31 |
 | CNY | `7.1019104 CNY/USD` | Federal Reserve H.10 daily rates, average 2025-04-01 to 2026-03-31 |
 
@@ -84,19 +100,33 @@ the same-sector/same-industry comparison is understandable in a game. For
 example, Microsoft, Adobe, Salesforce, Oracle, SAP and Shopify share the
 `Software` industry; semiconductor companies share `Semiconductors`.
 
-## Seed composition
+## Dataset composition
 
-The 40 answer candidates are a cross-section of large, well-known public
-companies from the US, Europe and Asia. The 10 non-candidate companies broaden
-the guessable pool and deliberately include edge cases:
+The original 40 answer candidates were a cross-section of large, well-known
+public companies from the US, Europe and Asia. The expansion added 60 more
+candidates: the ten former non-candidates were promoted, and 50 new companies
+were appended to `answerOrder`. The result is 100 answer candidates.
 
-- Spotify: European company with EUR statements and a US listing.
-- Shopify: Canadian company with a US listing.
-- Intel: net loss in the selected fiscal year.
-- Broadcom and IBM: negative tax expense.
-- Qualcomm: unusually high effective tax rate.
-- Home Depot: January/February fiscal-year end with a different year label.
-- Costco, Starbucks, Cisco: additional consumer/technology guesses.
+The 50 non-candidates broaden the guessable pool and deliberately include edge
+cases:
+
+- Spotify: European company with EUR statements and a US listing; promoted to a
+  candidate in the expansion.
+- Shopify: Canadian company with a US listing; promoted to a candidate.
+- Intel: net loss in the selected fiscal year; promoted to a candidate.
+- Broadcom and IBM: negative tax expense; promoted to candidates.
+- Qualcomm: unusually high effective tax rate; promoted to a candidate.
+- Home Depot: January/February fiscal-year end with a different year label;
+  promoted to a candidate.
+- Costco, Starbucks, Cisco: additional consumer/technology guesses; promoted to
+  candidates.
+- The new non-candidates include loss-making automakers (Ford, Rivian, Lucid),
+  media and gaming companies, retailers, industrials, REITs and foreign issuers
+  such as Equinor, Vale, Petrobras, JD.com, Baidu, NetEase, Trip.com, Yum China,
+  ZTO Express and Wipro.
+
+The 100 candidate IDs are all present in `answerOrder`. The prefix of the order
+is never rewritten; this is what keeps daily and archive answers stable.
 
 ## Building and updating
 
@@ -171,13 +201,113 @@ append missing candidates to an existing order without changing the prefix.
 | TSM | TSMC | 2025 | 2025-12-31 | SEC 20-F XBRL instance | USD convenience translation |
 | BABA | Alibaba | 2026 | 2026-03-31 | SEC 20-F facts | CNY |
 | INFY | Infosys | 2026 | 2026-03-31 | SEC 20-F XBRL instance | USD reporting |
-| SBUX | Starbucks | 2025 | 2025-09-28 | SEC 10-K facts | Non-candidate |
-| COST | Costco | 2026 | 2026-08-30 | SEC 10-K facts | Non-candidate |
-| HD | Home Depot | 2025 | 2026-02-01 | SEC 10-K facts | Non-candidate; January-end fiscal year |
-| QCOM | Qualcomm | 2025 | 2025-09-28 | SEC 10-K facts | Non-candidate; high tax rate |
-| AVGO | Broadcom | 2025 | 2025-11-02 | SEC 10-K facts | Non-candidate; negative tax expense |
-| IBM | IBM | 2025 | 2025-12-31 | SEC 10-K facts | Non-candidate; negative tax expense |
-| CSCO | Cisco | 2026 | 2026-07-25 | SEC 10-K facts | Non-candidate |
-| SPOT | Spotify | 2025 | 2025-12-31 | SEC 20-F facts | Non-candidate; EUR |
-| SHOP | Shopify | 2025 | 2025-12-31 | SEC 10-K facts | Non-candidate; USD reporting |
-| INTC | Intel | 2025 | 2025-12-27 | SEC 10-K facts | Non-candidate; net loss |
+| SBUX | Starbucks | 2025 | 2025-09-28 | SEC 10-K facts | Promoted to candidate in expansion |
+| COST | Costco | 2026 | 2026-08-30 | SEC 10-K facts | Promoted to candidate in expansion |
+| HD | Home Depot | 2025 | 2026-02-01 | SEC 10-K facts | Promoted to candidate; January-end fiscal year |
+| QCOM | Qualcomm | 2025 | 2025-09-28 | SEC 10-K facts | Promoted to candidate; high tax rate |
+| AVGO | Broadcom | 2025 | 2025-11-02 | SEC 10-K facts | Promoted to candidate; negative tax expense |
+| IBM | IBM | 2025 | 2025-12-31 | SEC 10-K facts | Promoted to candidate; negative tax expense |
+| CSCO | Cisco | 2026 | 2026-07-25 | SEC 10-K facts | Promoted to candidate in expansion |
+| SPOT | Spotify | 2025 | 2025-12-31 | SEC 20-F facts | Promoted to candidate; EUR |
+| SHOP | Shopify | 2025 | 2025-12-31 | SEC 10-K facts | Promoted to candidate; USD reporting |
+| INTC | Intel | 2025 | 2025-12-27 | SEC 10-K facts | Promoted to candidate; net loss |
+| JPM | JPMorgan Chase | 2025 | 2025-12-31 | SEC 10-K facts |  |
+| BAC | Bank of America | 2025 | 2025-12-31 | SEC 10-K facts |  |
+| WFC | Wells Fargo | 2025 | 2025-12-31 | SEC 10-K facts |  |
+| GS | Goldman Sachs | 2025 | 2025-12-31 | SEC 10-K facts |  |
+| MS | Morgan Stanley | 2025 | 2025-12-31 | SEC 10-K facts |  |
+| BLK | BlackRock | 2025 | 2025-12-31 | SEC 10-K facts |  |
+| AXP | American Express | 2025 | 2025-12-31 | SEC 10-K facts |  |
+| UNH | UnitedHealth Group | 2025 | 2025-12-31 | SEC 10-K facts |  |
+| LLY | Eli Lilly | 2025 | 2025-12-31 | SEC 10-K facts |  |
+| PFE | Pfizer | 2025 | 2025-12-31 | SEC 10-K facts | Negative tax expense |
+| MRK | Merck | 2025 | 2025-12-31 | SEC 10-K facts |  |
+| ABBV | AbbVie | 2025 | 2025-12-31 | SEC 10-K facts |  |
+| AMGN | Amgen | 2025 | 2025-12-31 | SEC 10-K facts |  |
+| TMO | Thermo Fisher Scientific | 2025 | 2025-12-31 | SEC 10-K facts |  |
+| ABT | Abbott Laboratories | 2025 | 2025-12-31 | SEC 10-K facts |  |
+| CAT | Caterpillar | 2025 | 2025-12-31 | SEC 10-K facts |  |
+| BA | Boeing | 2025 | 2025-12-31 | SEC 10-K facts |  |
+| GE | GE Aerospace | 2025 | 2025-12-31 | SEC 10-K facts |  |
+| HON | Honeywell | 2025 | 2025-12-31 | SEC 10-K facts |  |
+| UPS | UPS | 2025 | 2025-12-31 | SEC 10-K facts |  |
+| FDX | FedEx | 2026 | 2026-05-31 | SEC 10-K facts |  |
+| RTX | RTX | 2025 | 2025-12-31 | SEC 10-K facts |  |
+| LMT | Lockheed Martin | 2025 | 2025-12-31 | SEC 10-K facts |  |
+| COP | ConocoPhillips | 2025 | 2025-12-31 | SEC 10-K facts |  |
+| VZ | Verizon | 2025 | 2025-12-31 | SEC 10-K facts |  |
+| T | AT&T | 2025 | 2025-12-31 | SEC 10-K facts |  |
+| TMUS | T-Mobile US | 2025 | 2025-12-31 | SEC 10-K facts |  |
+| CMCSA | Comcast | 2025 | 2025-12-31 | SEC 10-K facts |  |
+| NEE | NextEra Energy | 2025 | 2025-12-31 | SEC 10-K facts | Negative effective tax rate |
+| LIN | Linde | 2025 | 2025-12-31 | SEC 10-K facts | Irish incorporation; treated as UK/Europe editorially |
+| SHW | Sherwin-Williams | 2025 | 2025-12-31 | SEC 10-K facts |  |
+| PLD | Prologis | 2025 | 2025-12-31 | SEC 10-K facts |  |
+| AMT | American Tower | 2025 | 2025-12-31 | SEC 10-K facts |  |
+| EQIX | Equinix | 2025 | 2025-12-31 | SEC 10-K facts |  |
+| PYPL | PayPal | 2025 | 2025-12-31 | SEC 10-K facts | Pre-tax = net + tax |
+| SPGI | S&P Global | 2025 | 2025-12-31 | SEC 10-K facts |  |
+| MCO | Moody's | 2025 | 2025-12-31 | SEC 10-K facts |  |
+| CME | CME Group | 2025 | 2025-12-31 | SEC 10-K facts |  |
+| ICE | Intercontinental Exchange | 2025 | 2025-12-31 | SEC 10-K facts |  |
+| MDLZ | Mondelez International | 2025 | 2025-12-31 | SEC 10-K facts |  |
+| NOW | ServiceNow | 2025 | 2025-12-31 | SEC 10-K facts |  |
+| GSK | GSK | 2025 | 2025-12-31 | SEC 20-F XBRL instance | GBP; converted at 1.3192 USD/GBP |
+| HSBC | HSBC | 2025 | 2025-12-31 | SEC 20-F facts | Net profit attributable to ordinary shareholders |
+| RIO | Rio Tinto | 2025 | 2025-12-31 | SEC 20-F facts | USD reporting |
+| BHP | BHP | 2026 | 2026-06-30 | SEC 20-F XBRL instance | FY2026 instance; net attributable to owners |
+| UBS | UBS | 2025 | 2025-12-31 | SEC 20-F facts | Net profit attributable to owners |
+| MUFG | Mitsubishi UFJ Financial | 2026 | 2026-03-31 | SEC 20-F facts | JPY; converted at 150.66772 JPY/USD |
+| HDB | HDFC Bank | 2026 | 2026-03-31 | SEC 20-F XBRL instance | FY2026 instance; USD convenience translation; pre-tax derived as net + tax |
+| PDD | PDD Holdings | 2025 | 2025-12-31 | SEC 20-F facts | USD reporting |
+| ACN | Accenture | 2026 | 2026-08-31 | SEC 10-K facts | August fiscal-year end |
+| CHTR | Charter Communications | 2025 | 2025-12-31 | SEC 10-K facts |  |
+| EA | Electronic Arts | 2026 | 2026-03-31 | SEC 10-K facts |  |
+| TTWO | Take-Two Interactive | 2026 | 2026-03-31 | SEC 10-K facts |  |
+| WBD | Warner Bros. Discovery | 2025 | 2025-12-31 | SEC 10-K facts |  |
+| FOXA | Fox | 2026 | 2026-06-30 | SEC 10-K facts | Fox Corporation Class A |
+| NWSA | News Corp | 2026 | 2026-06-30 | SEC 10-K facts | News Corporation Class A |
+| F | Ford | 2025 | 2025-12-31 | SEC 10-K facts |  |
+| GM | General Motors | 2025 | 2025-12-31 | SEC 10-K facts |  |
+| RIVN | Rivian | 2025 | 2025-12-31 | SEC 10-K facts |  |
+| LCID | Lucid Group | 2025 | 2025-12-31 | SEC 10-K facts |  |
+| TGT | Target | 2025 | 2026-01-31 | SEC 10-K facts |  |
+| LOW | Lowe's | 2025 | 2026-01-30 | SEC 10-K facts |  |
+| TJX | TJX Companies | 2025 | 2026-01-31 | SEC 10-K facts |  |
+| BKNG | Booking Holdings | 2025 | 2025-12-31 | SEC 10-K facts | Net income available to common shareholders fallback |
+| ABNB | Airbnb | 2025 | 2025-12-31 | SEC 10-K facts |  |
+| MAR | Marriott International | 2025 | 2025-12-31 | SEC 10-K facts |  |
+| HLT | Hilton Worldwide | 2025 | 2025-12-31 | SEC 10-K facts |  |
+| YUM | Yum! Brands | 2025 | 2025-12-31 | SEC 10-K facts |  |
+| CMG | Chipotle Mexican Grill | 2025 | 2025-12-31 | SEC 10-K facts |  |
+| DPZ | Domino's Pizza | 2025 | 2025-12-28 | SEC 10-K facts |  |
+| DE | Deere | 2025 | 2025-11-02 | SEC 10-K facts |  |
+| MMM | 3M | 2025 | 2025-12-31 | SEC 10-K facts |  |
+| UNP | Union Pacific | 2025 | 2025-12-31 | SEC 10-K facts |  |
+| CSX | CSX | 2025 | 2025-12-31 | SEC 10-K facts |  |
+| NSC | Norfolk Southern | 2025 | 2025-12-31 | SEC 10-K facts |  |
+| ETN | Eaton | 2025 | 2025-12-31 | SEC 10-K facts |  |
+| EMR | Emerson Electric | 2025 | 2025-09-30 | SEC 10-K facts |  |
+| ITW | Illinois Tool Works | 2025 | 2025-12-31 | SEC 10-K facts | Pre-tax = net + tax |
+| PH | Parker Hannifin | 2026 | 2026-06-30 | SEC 10-K facts |  |
+| CMI | Cummins | 2025 | 2025-12-31 | SEC 10-K facts |  |
+| SLB | SLB | 2025 | 2025-12-31 | SEC 10-K facts |  |
+| HAL | Halliburton | 2025 | 2025-12-31 | SEC 10-K facts |  |
+| BKR | Baker Hughes | 2025 | 2025-12-31 | SEC 10-K facts |  |
+| OXY | Occidental Petroleum | 2025 | 2025-12-31 | SEC 10-K facts |  |
+| PSX | Phillips 66 | 2025 | 2025-12-31 | SEC 10-K facts | Pre-tax = net + tax |
+| MPC | Marathon Petroleum | 2025 | 2025-12-31 | SEC 10-K facts |  |
+| VLO | Valero Energy | 2025 | 2025-12-31 | SEC 10-K facts |  |
+| O | Realty Income | 2025 | 2025-12-31 | SEC 10-K facts |  |
+| SPG | Simon Property Group | 2025 | 2025-12-31 | SEC 10-K facts | Pre-tax = net + tax |
+| DLR | Digital Realty | 2025 | 2025-12-31 | SEC 10-K facts |  |
+| EQNR | Equinor | 2025 | 2025-12-31 | SEC 20-F facts | USD reporting; high effective tax rate |
+| VALE | Vale | 2025 | 2025-12-31 | SEC 20-F facts | USD reporting; high effective tax rate |
+| PBR | Petrobras | 2025 | 2025-12-31 | SEC 20-F XBRL instance | FY2025 instance |
+| JD | JD.com | 2025 | 2025-12-31 | SEC 20-F facts | USD reporting |
+| BIDU | Baidu | 2025 | 2025-12-31 | SEC 20-F facts | USD reporting |
+| NTES | NetEase | 2025 | 2025-12-31 | SEC 20-F facts | USD reporting |
+| TCOM | Trip.com Group | 2025 | 2025-12-31 | SEC 20-F facts | USD reporting |
+| YUMC | Yum China | 2025 | 2025-12-31 | SEC 20-F facts | USD reporting |
+| ZTO | ZTO Express | 2025 | 2025-12-31 | SEC 20-F facts | USD reporting |
+| WIT | Wipro | 2026 | 2026-03-31 | SEC 20-F XBRL instance | FY2026 instance |

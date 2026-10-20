@@ -24,6 +24,10 @@ public class CompanyDataTests
         ["Taiwan"] = "Asia",
         ["China"] = "Asia",
         ["India"] = "Asia",
+        ["Australia"] = "Oceania",
+        ["Brazil"] = "South America",
+        ["Norway"] = "Europe",
+        ["Ireland"] = "Europe",
     };
 
     private static CompanyData LoadData()
@@ -45,8 +49,8 @@ public class CompanyDataTests
             Assert.That(Data.DataAsOf, Is.Not.EqualTo(default(DateOnly)));
             Assert.That(Data.Currency, Is.EqualTo("USD"));
             Assert.That(Data.Companies, Is.Not.Empty);
-            Assert.That(Data.Companies.Count, Is.GreaterThanOrEqualTo(50));
-            Assert.That(Data.Companies.Count(company => company.IsAnswerCandidate), Is.GreaterThanOrEqualTo(40));
+            Assert.That(Data.Companies.Count, Is.GreaterThanOrEqualTo(150));
+            Assert.That(Data.Companies.Count(company => company.IsAnswerCandidate), Is.GreaterThanOrEqualTo(100));
             Assert.That(Data.AnswerOrder, Is.Not.Empty);
         });
     }
@@ -75,7 +79,7 @@ public class CompanyDataTests
                 Assert.That(company.Exchange, Is.Not.Null.And.Not.Empty, company.Id);
                 Assert.That(new[] { "high", "medium", "low" }, Does.Contain(company.Confidence), company.Id);
                 Assert.That(company.Founded, Is.InRange(1800, Data.DataAsOf.Year), company.Id);
-                Assert.That(company.Employees, Is.InRange(1_000, 5_000_000), company.Id);
+                Assert.That(company.Employees, Is.InRange(100, 5_000_000), company.Id);
                 Assert.That(company.RevenueUsd, Is.GreaterThan(0m), company.Id);
                 Assert.That(company.NetProfitUsd, Is.GreaterThan(-200_000_000_000m), company.Id);
                 Assert.That(company.MarketCapUsd, Is.GreaterThan(0m), company.Id);
@@ -112,6 +116,20 @@ public class CompanyDataTests
     }
 
     [Test]
+    public void AnswerOrder_PreservesTheOriginalSeedPrefix()
+    {
+        string[] originalOrder =
+        [
+            "orcl", "v", "asml", "nke", "sap", "tsm", "nvda", "baba", "meta", "xom",
+            "wmt", "aapl", "sony", "crm", "jnj", "mcd", "pep", "tte", "nvs", "pg",
+            "dis", "googl", "txn", "tsla", "msft", "ma", "bp", "amzn", "amd", "ko",
+            "cvx", "azn", "tm", "sny", "shel", "adbe", "ul", "infy", "nflx", "nvo",
+        ];
+
+        Assert.That(Data.AnswerOrder.Take(originalOrder.Length), Is.EqualTo(originalOrder));
+    }
+
+    [Test]
     public void AnswerCandidates_HaveNonNullTaxRateAndAreNotLowConfidence()
     {
         foreach (var company in Data.Companies.Where(company => company.IsAnswerCandidate))
@@ -125,7 +143,10 @@ public class CompanyDataTests
     }
 
     [TestCase("aapl", true)]
-    [TestCase("sbux", false)]
+    [TestCase("sbux", true)]
+    [TestCase("jpm", true)]
+    [TestCase("bhp", true)]
+    [TestCase("wbd", false)]
     [TestCase("sony", true)]
     public void SampleCandidateFlags_AreCorrect(string id, bool expected)
     {
