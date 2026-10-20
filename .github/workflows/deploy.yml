@@ -21,8 +21,8 @@ jobs:
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: 10.0.x
-      # Portfolio: GHPagesBase=/   Game: GHPagesBase=/daily-game/
-      - run: dotnet publish companydle/companydle.csproj -c Release -o publish -p:GHPages=true -p:GHPagesBase=/daily-game/
+      # Portfolio: GHPagesBase=/   Game: GHPagesBase=/companydle/
+      - run: dotnet publish companydle/companydle.csproj -c Release -o publish -p:GHPages=true -p:GHPagesBase=/companydle/
       - uses: actions/upload-pages-artifact@v3
         with:
           path: publish/wwwroot
