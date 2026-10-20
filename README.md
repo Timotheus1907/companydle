@@ -5,9 +5,7 @@ static, client-only PWA designed for GitHub Pages at
 `https://timotheus1907.github.io/companydle/` and works offline after the first
 visit.
 
-> **Disclaimer:** This project was generated with **DeepSeek-V4.1-Flash-1017**.
-> It is for entertainment only. Company figures are approximate and must not be
-> used for investment or financial decisions.
+> **Disclaimer:** This project is quite different from the rest of my projects as it was generated with **DeepSeek-V4.1-Flash-1017**.
 
 ## Requirements
 
