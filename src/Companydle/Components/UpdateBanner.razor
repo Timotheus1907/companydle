@@ -1,0 +1,67 @@
+@inject IJSRuntime JS
+@implements IAsyncDisposable
+
+@if (_visible)
+{
+    <div class="alert alert-info d-flex flex-wrap align-items-center justify-content-between gap-2 mt-3 mb-0" role="status">
+        <span>A new version of Companydle is ready.</span>
+        <button type="button" class="btn btn-sm btn-info" @onclick="ReloadAsync">Reload</button>
+    </div>
+}
+
+@code {
+    private DotNetObjectReference<UpdateBanner>? _callback;
+    private bool _visible;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender)
+        {
+            return;
+        }
+
+        _callback = DotNetObjectReference.Create(this);
+        try
+        {
+            _visible = await JS.InvokeAsync<bool>("companydleWatchForUpdates", _callback);
+            StateHasChanged();
+        }
+        catch (Exception exception)
+        {
+            Console.Error.WriteLine(exception);
+        }
+    }
+
+    [JSInvokable]
+    public void OnUpdateAvailable()
+    {
+        _visible = true;
+        StateHasChanged();
+    }
+
+    private async Task ReloadAsync()
+    {
+        try
+        {
+            await JS.InvokeVoidAsync("companydleApplyUpdate");
+        }
+        catch (Exception exception)
+        {
+            Console.Error.WriteLine(exception);
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        try
+        {
+            await JS.InvokeVoidAsync("companydleUnwatchForUpdates");
+        }
+        catch (Exception)
+        {
+            // JS interop is unavailable during a full page teardown.
+        }
+
+        _callback?.Dispose();
+    }
+}

@@ -73,7 +73,23 @@ so local development works without the GitHub Pages base path.
 
 The generated `wwwroot/service-worker.published.js` handles the project-site
 scope and precaches the bundled company data. No external API calls are made at
-runtime.
+runtime. When a new service worker is installed, an in-app update banner offers
+a reload; the new worker is activated with `SKIP_WAITING` and the page reloads
+once on `controllerchange`.
+
+## PWA and offline testing
+
+Development builds use a deliberate no-op service worker, so offline caching
+must be tested against the published output:
+
+1. Publish with `dotnet publish src/Companydle/Companydle.csproj -c Release -o publish -p:GHPages=true -p:GHPagesBase=/companydle/`.
+2. Serve `publish/wwwroot` under a `/companydle/` URL prefix (the deploy workflow
+   does this on GitHub Pages).
+3. Open the site once and confirm the service worker scope is
+   `/companydle/` and the manifest and icons load.
+4. In DevTools → Application → Service Workers, tick **Offline** and reload. The
+   game and company data should still load.
+5. Deploy a new build to see the update banner; click **Reload** to activate it.
 
 ## Data
 
