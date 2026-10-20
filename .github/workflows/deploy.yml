@@ -22,7 +22,7 @@ jobs:
         with:
           dotnet-version: 10.0.x
       # Portfolio: GHPagesBase=/   Game: GHPagesBase=/daily-game/
-      - run: dotnet publish companydle.csproj -c Release -o publish -p:GHPages=true -p:GHPagesBase=/daily-game/
+      - run: dotnet publish timotheus1907.github.io/companydle.csproj -c Release -o publish -p:GHPages=true -p:GHPagesBase=/daily-game/
       - uses: actions/upload-pages-artifact@v3
         with:
           path: publish/wwwroot
