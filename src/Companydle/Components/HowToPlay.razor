@@ -1,0 +1,66 @@
+@using Companydle
+
+<button type="button"
+        class="btn btn-outline-secondary btn-sm"
+        @onclick="Toggle"
+        aria-expanded="@(_open ? "true" : "false")"
+        aria-controls="how-to-play">
+    How to play
+</button>
+
+@if (_open)
+{
+    <section id="how-to-play" class="card bg-body-tertiary border-secondary mt-3">
+        <div class="card-body">
+            <h2 class="h5 text-success-emphasis">How to play</h2>
+            <p class="mb-3">
+                Guess the hidden public company in eight tries. Search by company name or alias,
+                then compare its ten stats with the answer.
+            </p>
+
+            <ul class="list-unstyled mb-3">
+                <li class="mb-2">
+                    <span class="badge bg-success me-1">Correct</span>
+                    The stat matches the answer.
+                </li>
+                <li class="mb-2">
+                    <span class="badge bg-warning text-dark me-1">Close</span>
+                    The stat is near the answer, but not exact.
+                </li>
+                <li class="mb-2">
+                    <span class="badge bg-body-secondary me-1">Wrong</span>
+                    The stat is outside the close range.
+                </li>
+                <li class="mb-2">
+                    <span class="badge bg-body-secondary me-1">Unknown</span>
+                    The value is not available.
+                </li>
+                <li>
+                    <span class="text-success-emphasis fw-semibold">↑ / ↓</span>
+                    The answer is higher or lower than your guess.
+                </li>
+            </ul>
+
+            <p class="mb-2">
+                Ten tiles cover country, sector, industry, founded year, employees, revenue,
+                net profit, market cap, effective tax rate and exchange.
+            </p>
+            <p class="mb-2">
+                After guess 4 you get the first letter of the answer. After guess 6 you get
+                the number of words in its name.
+            </p>
+            <p class="mb-0 small text-body-secondary">
+                A new puzzle arrives at local midnight. Figures are approximate, for entertainment only.
+            </p>
+        </div>
+    </section>
+}
+
+@code {
+    private bool _open;
+
+    private void Toggle()
+    {
+        _open = !_open;
+    }
+}

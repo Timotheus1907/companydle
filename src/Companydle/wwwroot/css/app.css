@@ -12,6 +12,7 @@ a:hover, .btn-link:hover {
 
 .game-shell {
     max-width: 960px;
+    padding-top: 5rem;
 }
 
 .text-shell {

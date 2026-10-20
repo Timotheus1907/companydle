@@ -2,15 +2,18 @@
 
 <PageTitle>Companydle</PageTitle>
 
-<section class="font-monospace">
+<section class="text-shell">
     <p class="text-success-emphasis mb-1">$ ./guess --daily</p>
     <h1 class="display-5 fw-bold glow">Companydle<span class="terminal-cursor" aria-hidden="true"></span></h1>
-    <p class="lead">A daily guess-the-company puzzle.</p>
+    <p class="lead mb-2">Guess the hidden company in eight tries.</p>
+    <p class="text-body-secondary">
+        One company a day. Ten stats per guess. The same puzzle for everyone.
+    </p>
 
-    <div class="alert alert-success mt-4" role="status">
-        <span class="fw-semibold">Pipeline online.</span>
-        The app shell is deployed under <code>/companydle/</code> with its manifest and service worker.
+    <HowToPlay />
+
+    <div class="alert alert-secondary mt-4 mb-0" role="status">
+        <span class="fw-semibold">Game board coming online.</span>
+        The daily puzzle will load here in the next build.
     </div>
-
-    <p class="text-body-secondary small mb-0">Phase 1 scaffold. The daily puzzle and dataset arrive in the next phases.</p>
 </section>
