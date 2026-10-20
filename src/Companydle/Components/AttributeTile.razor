@@ -1,0 +1,20 @@
+@using Companydle.Models
+
+<div class="attribute-tile @Result.FeedbackClass @(Result.Feedback == Feedback.Correct ? "text-white" : null)"
+     role="group"
+     aria-label="@Result.AriaLabel">
+    <span class="tile-label" aria-hidden="true">@Result.Label</span>
+    <span class="tile-value" aria-hidden="true">
+        @Result.DisplayValue
+        @if (!string.IsNullOrEmpty(Result.Arrow))
+        {
+            <span class="tile-arrow">@Result.Arrow</span>
+        }
+    </span>
+    <span class="tile-state" aria-hidden="true">@Result.StateText</span>
+</div>
+
+@code {
+    [Parameter, EditorRequired]
+    public AttributeResult Result { get; set; } = default!;
+}

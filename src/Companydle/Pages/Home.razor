@@ -1,17 +1,34 @@
 ﻿@page "/"
 @inject CompanyDataService CompanyDataService
+@inject GameStateService GameStateService
+@inject NavigationManager Navigation
+@inject IJSRuntime JS
 
 <PageTitle>Companydle</PageTitle>
 
-<section class="text-shell">
-    <p class="text-success-emphasis mb-1">$ ./guess --daily</p>
-    <h1 class="display-5 fw-bold glow">Companydle<span class="terminal-cursor" aria-hidden="true"></span></h1>
-    <p class="lead mb-2">Guess the hidden company in eight tries.</p>
-    <p class="text-body-secondary">
-        One company a day. Ten stats per guess. The same puzzle for everyone.
-    </p>
+<section>
+    <div class="text-shell">
+        <p class="text-success-emphasis mb-1">$ ./guess --daily</p>
+        <h1 class="display-5 fw-bold glow">Companydle<span class="terminal-cursor" aria-hidden="true"></span></h1>
+        <p class="lead mb-2">Guess the hidden company in eight tries.</p>
+        <p class="text-body-secondary">
+            One company a day. Ten stats per guess. The same puzzle for everyone.
+        </p>
 
-    <HowToPlay />
+        <div class="d-flex flex-wrap gap-2 align-items-start mt-3">
+            <HowToPlay />
+            @if (_state is not null)
+            {
+                <button type="button"
+                        class="btn btn-outline-secondary btn-sm"
+                        @onclick="ToggleStats"
+                        aria-expanded="@(_showStats ? "true" : "false")"
+                        aria-controls="stats-panel">
+                    Stats
+                </button>
+            }
+        </div>
+    </div>
 
     @if (_loading)
     {
@@ -22,41 +39,217 @@
     else if (_error is not null)
     {
         <div class="alert alert-danger mt-4 mb-0" role="alert">
-            <p class="mb-2"><span class="fw-semibold">Could not load company data.</span> @_error</p>
-            <button type="button" class="btn btn-outline-danger btn-sm" @onclick="LoadAsync">Retry</button>
+            <p class="mb-2"><span class="fw-semibold">Could not load the game.</span> @_error</p>
+            <button type="button" class="btn btn-outline-danger btn-sm" @onclick="InitializeAsync">Retry</button>
         </div>
     }
-    else if (_data is not null)
+    else if (HasPuzzle)
     {
-        <div class="alert alert-secondary mt-4 mb-0" role="status">
-            <span class="fw-semibold text-success-emphasis">Seed data loaded.</span>
-            @_data.Companies.Count companies, @CandidateCount answer candidates.
-            Snapshot @_data.DataAsOf.ToString("yyyy-MM-dd").
+        @if (!GameStateService.IsPersistent)
+        {
+            <div class="alert alert-warning mt-3 mb-0" role="alert">
+                @(GameStateService.StorageNotice ?? GameStateService.StorageUnavailableNotice)
+            </div>
+        }
+
+        <div class="game-panel mt-4">
+            <div class="d-flex flex-wrap align-items-end justify-content-between gap-2 mb-3">
+                <div>
+                    <div class="text-success-emphasis small">$ ./puzzle --#@_selectedNumber</div>
+                    <h2 class="h4 mb-0">
+                        @(_isArchive ? "Archive puzzle" : "Daily puzzle")
+                        <span class="text-body-secondary fs-6">#@_selectedNumber</span>
+                    </h2>
+                    <div class="text-body-secondary small">
+                        @DailyPuzzleService.GetPuzzleDate(_selectedNumber).ToString("yyyy-MM-dd")
+                        @if (_isArchive)
+                        {
+                            <span> · archive results do not affect stats</span>
+                        }
+                    </div>
+                </div>
+
+                @if (_archiveNumbers.Count > 0)
+                {
+                    <div class="archive-picker">
+                        <label for="puzzle-select" class="form-label small text-body-secondary mb-1">Puzzle</label>
+                        <select id="puzzle-select" class="form-select form-select-sm" @onchange="OnPuzzleChanged">
+                            <option value="@_todayNumber" selected="@(_selectedNumber == _todayNumber)">
+                                Today · #@_todayNumber
+                            </option>
+                            @foreach (var number in _archiveNumbers)
+                            {
+                                <option value="@number" selected="@(_selectedNumber == number)">
+                                    Archive · #@number · @DailyPuzzleService.GetPuzzleDate(number).ToString("yyyy-MM-dd")
+                                </option>
+                            }
+                        </select>
+                    </div>
+                }
+            </div>
+
+            @if (CurrentFinished)
+            {
+                <div class="alert @(CurrentWon ? "alert-success" : "alert-warning")" role="status">
+                    <p class="mb-1 fw-semibold">
+                        @if (CurrentWon)
+                        {
+                            <span>Solved in @GuessCount/@GameRules.MaxGuesses.</span>
+                        }
+                        else
+                        {
+                            <span>No more guesses. The answer was @_answer!.Name.</span>
+                        }
+                    </p>
+                    <p class="mb-0 small">Answer: <span class="fw-semibold">@_answer!.Name</span> (@_answer.Id.ToUpperInvariant()).</p>
+                    @if (_isArchive)
+                    {
+                        <p class="mb-0 small">Archive puzzle. This result is not included in daily stats.</p>
+                    }
+                </div>
+            }
+
+            <div class="mb-3">
+                <GuessInput @ref="_guessInput"
+                            Companies="_data!.Companies"
+                            OnGuess="SubmitGuessAsync"
+                            Disabled="@(!CanGuess)" />
+                @if (_inputMessage is not null)
+                {
+                    <div class="small text-warning mt-1" role="alert">@_inputMessage</div>
+                }
+                @if (CurrentFinished)
+                {
+                    <div class="small text-body-secondary mt-1">
+                        Choose another puzzle above to play an earlier day.
+                    </div>
+                }
+            </div>
+
+            @if (GuessCount >= GameRules.HintFirstLetterAfterGuesses)
+            {
+                <div class="alert alert-secondary py-2" role="status" aria-live="polite">
+                    <span class="text-success-emphasis fw-semibold">Hint:</span>
+                    first letter is <span class="fw-semibold">@FirstLetter</span>.
+                    @if (GuessCount >= GameRules.HintWordCountAfterGuesses)
+                    {
+                        <span>The name has <span class="fw-semibold">@AnswerWordCount</span> word@(AnswerWordCount == 1 ? string.Empty : "s").</span>
+                    }
+                </div>
+            }
+
+            @if (_shareMessage is not null)
+            {
+                <div class="alert alert-secondary py-2" role="status">@_shareMessage</div>
+            }
+
+            @if (_showShareText && _shareText is not null)
+            {
+                <label for="share-text" class="form-label small text-body-secondary mb-1">Share text</label>
+                <textarea id="share-text" class="form-control mb-3" rows="8" readonly>@_shareText</textarea>
+            }
+
+            @if (CurrentFinished && GuessCount > 0)
+            {
+                <div class="d-flex flex-wrap gap-2 mb-3">
+                    <button type="button" class="btn btn-success" @onclick="ShareAsync">Share result</button>
+                </div>
+            }
+
+            <div class="guess-list" aria-live="polite">
+                @foreach (var display in _guessDisplays)
+                {
+                    <GuessRow Result="display.Result" GuessNumber="display.Number" />
+                }
+            </div>
+
+            @if (_showStats && _state is not null)
+            {
+                <div id="stats-panel">
+                    <StatsPanel Stats="_state.Stats" OnClose="CloseStats" />
+                </div>
+            }
         </div>
     }
 </section>
 
 @code {
     private CompanyData? _data;
-    private string? _error;
+    private GameState? _state;
+    private DailyProgress? _dailyProgress;
+    private ArchiveProgress? _archiveProgress;
+    private Company? _answer;
+    private GuessInput? _guessInput;
+    private List<GuessDisplay> _guessDisplays = [];
+    private IReadOnlyList<int> _archiveNumbers = Array.Empty<int>();
+    private DateOnly _today;
+    private int _todayNumber;
+    private int _selectedNumber;
+    private bool _isArchive;
     private bool _loading = true;
+    private bool _showStats;
+    private bool _showShareText;
+    private string? _error;
+    private string? _inputMessage;
+    private string? _shareMessage;
+    private string? _shareText;
 
-    private int CandidateCount => _data?.Companies.Count(company => company.IsAnswerCandidate) ?? 0;
+    private bool HasPuzzle =>
+        _data is not null
+        && _state is not null
+        && _dailyProgress is not null
+        && _answer is not null
+        && (!_isArchive || _archiveProgress is not null);
 
-    protected override Task OnInitializedAsync() => LoadAsync();
+    private List<string> CurrentGuesses =>
+        _isArchive ? _archiveProgress!.Guesses : _dailyProgress!.Guesses;
 
-    private async Task LoadAsync()
+    private bool CurrentWon =>
+        _isArchive ? _archiveProgress!.Won : _dailyProgress!.Won;
+
+    private bool CurrentFinished =>
+        CurrentWon || CurrentGuesses.Count >= GameRules.MaxGuesses;
+
+    private bool CanGuess => HasPuzzle && !CurrentFinished;
+
+    private int GuessCount => HasPuzzle ? CurrentGuesses.Count : 0;
+
+    private string FirstLetter =>
+        _answer is null || _answer.Name.Length == 0
+            ? "?"
+            : _answer.Name[0].ToString().ToUpperInvariant();
+
+    private int AnswerWordCount =>
+        _answer?.Name.Split(' ', StringSplitOptions.RemoveEmptyEntries).Length ?? 0;
+
+    protected override Task OnInitializedAsync() => InitializeAsync();
+
+    private async Task InitializeAsync()
     {
         _loading = true;
         _error = null;
+        _data = null;
+        _state = null;
+        _answer = null;
+        _dailyProgress = null;
+        _archiveProgress = null;
+        _guessDisplays.Clear();
+        _shareMessage = null;
+        _shareText = null;
+        _showShareText = false;
 
         try
         {
             _data = await CompanyDataService.LoadAsync(forceReload: true);
+            _today = DateOnly.FromDateTime(DateTime.Now);
+            _todayNumber = DailyPuzzleService.GetPuzzleNumber(_today);
+            _archiveNumbers = DailyPuzzleService.GetArchiveNumbers(_today);
+            _state = await GameStateService.LoadAsync(_today, _todayNumber);
+            _dailyProgress = _state.Daily;
+            await SelectPuzzleAsync(_todayNumber);
         }
         catch (Exception exception)
         {
-            _data = null;
             _error = exception.Message;
             Console.Error.WriteLine(exception);
         }
@@ -65,4 +258,193 @@
             _loading = false;
         }
     }
+
+    private async Task OnPuzzleChanged(ChangeEventArgs args)
+    {
+        if (!int.TryParse(args.Value?.ToString(), out var number) || number == _selectedNumber)
+        {
+            return;
+        }
+
+        await SelectPuzzleAsync(number);
+    }
+
+    private async Task SelectPuzzleAsync(int number)
+    {
+        if (_data is null || _state is null || number < 0 || number > _todayNumber)
+        {
+            return;
+        }
+
+        _selectedNumber = number;
+        _isArchive = number != _todayNumber;
+        _answer = DailyPuzzleService.GetAnswer(_data, number);
+        _dailyProgress = _state.Daily;
+        _inputMessage = null;
+        _shareMessage = null;
+        _shareText = null;
+        _showShareText = false;
+
+        if (_isArchive)
+        {
+            if (!_state.Archive.TryGetValue(number, out var archiveProgress))
+            {
+                archiveProgress = new ArchiveProgress { PuzzleNumber = number };
+                _state.Archive[number] = archiveProgress;
+                await GameStateService.SaveAsync(_state);
+            }
+
+            _archiveProgress = archiveProgress;
+        }
+        else
+        {
+            _archiveProgress = null;
+        }
+
+        RebuildGuessDisplays();
+
+        if (!_isArchive)
+        {
+            await RecordPendingStatsAsync();
+        }
+
+        _guessInput?.Clear();
+    }
+
+    private async Task RecordPendingStatsAsync()
+    {
+        if (_state is null || _dailyProgress is null || _dailyProgress.StatsRecorded || !_dailyProgress.IsFinished)
+        {
+            return;
+        }
+
+        StatsCalculator.RecordDailyCompletion(
+            _state.Stats,
+            _today,
+            _dailyProgress.Won,
+            _dailyProgress.Guesses.Count);
+        _dailyProgress.StatsRecorded = true;
+        await GameStateService.SaveAsync(_state);
+    }
+
+    private async Task SubmitGuessAsync(Company company)
+    {
+        if (_state is null || _answer is null || !CanGuess)
+        {
+            return;
+        }
+
+        if (CurrentGuesses.Any(id => string.Equals(id, company.Id, StringComparison.OrdinalIgnoreCase)))
+        {
+            _inputMessage = "You already guessed that company.";
+            return;
+        }
+
+        CurrentGuesses.Add(company.Id);
+        var result = GuessEvaluator.Evaluate(company, _answer);
+        if (result.IsWin)
+        {
+            if (_isArchive)
+            {
+                _archiveProgress!.Won = true;
+            }
+            else
+            {
+                _dailyProgress!.Won = true;
+            }
+        }
+
+        if (!_isArchive && CurrentFinished && !_dailyProgress!.StatsRecorded)
+        {
+            StatsCalculator.RecordDailyCompletion(
+                _state.Stats,
+                _today,
+                _dailyProgress.Won,
+                CurrentGuesses.Count);
+            _dailyProgress.StatsRecorded = true;
+        }
+
+        _inputMessage = null;
+        _shareMessage = null;
+        _shareText = null;
+        _showShareText = false;
+        await GameStateService.SaveAsync(_state);
+        RebuildGuessDisplays();
+        _guessInput?.Clear();
+    }
+
+    private void RebuildGuessDisplays()
+    {
+        _guessDisplays = [];
+        if (_data is null || _answer is null || !HasPuzzle)
+        {
+            return;
+        }
+
+        var byId = _data.Companies.ToDictionary(company => company.Id, StringComparer.Ordinal);
+        for (var index = 0; index < CurrentGuesses.Count; index++)
+        {
+            if (!byId.TryGetValue(CurrentGuesses[index], out var company))
+            {
+                continue;
+            }
+
+            _guessDisplays.Add(new GuessDisplay(
+                GuessEvaluator.Evaluate(company, _answer),
+                index + 1));
+        }
+
+        _guessDisplays.Reverse();
+    }
+
+    private void ToggleStats()
+    {
+        _showStats = !_showStats;
+    }
+
+    private void CloseStats()
+    {
+        _showStats = false;
+    }
+
+    private async Task ShareAsync()
+    {
+        if (!CurrentFinished || _guessDisplays.Count == 0)
+        {
+            return;
+        }
+
+        var guesses = _guessDisplays
+            .OrderBy(display => display.Number)
+            .Select(display => display.Result)
+            .ToList();
+        _shareText = ShareTextBuilder.Build(
+            _selectedNumber,
+            CurrentWon,
+            guesses,
+            Navigation.BaseUri,
+            _isArchive);
+        _showShareText = false;
+
+        try
+        {
+            var outcome = await JS.InvokeAsync<string>("companydleShare", _shareText);
+            _shareMessage = outcome switch
+            {
+                "shared" => "Result shared.",
+                "copied" => "Copied to clipboard.",
+                "cancelled" => "Share cancelled.",
+                _ => "Copy the result below.",
+            };
+            _showShareText = outcome is not "shared" and not "copied" and not "cancelled";
+        }
+        catch (Exception exception)
+        {
+            Console.Error.WriteLine(exception);
+            _shareMessage = "Could not open the share dialog. Copy the result below.";
+            _showShareText = true;
+        }
+    }
+
+    private sealed record GuessDisplay(GuessResult Result, int Number);
 }

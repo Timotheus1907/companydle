@@ -1,0 +1,23 @@
+@using Companydle.Models
+
+<article class="guess-row" aria-label="Guess @GuessNumber: @Result.Guess.Name">
+    <header class="guess-row-header">
+        <span class="text-success-emphasis">#@GuessNumber</span>
+        <span class="fw-semibold">@Result.Guess.Name</span>
+        <span class="text-body-secondary small">@Result.Guess.Id.ToUpperInvariant()</span>
+    </header>
+    <div class="guess-grid" role="list" aria-label="Ten attributes for @Result.Guess.Name">
+        @foreach (var attribute in Result.Attributes)
+        {
+            <AttributeTile Result="attribute" />
+        }
+    </div>
+</article>
+
+@code {
+    [Parameter, EditorRequired]
+    public GuessResult Result { get; set; } = default!;
+
+    [Parameter]
+    public int GuessNumber { get; set; }
+}

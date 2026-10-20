@@ -1,0 +1,199 @@
+@using Companydle.Models
+
+<div class="position-relative guess-input">
+    <div class="input-group">
+        <input type="text"
+               class="form-control"
+               value="@_query"
+               @oninput="OnInput"
+               @onkeydown="OnKeyDown"
+               @onfocus="OnFocus"
+               placeholder="Search a company or ticker"
+               aria-label="Search a company or ticker"
+               autocomplete="off"
+               spellcheck="false"
+               role="combobox"
+               aria-autocomplete="list"
+               aria-expanded="@(_open ? "true" : "false")"
+               aria-controls="guess-suggestions"
+               aria-activedescendant="@ActiveDescendant"
+               disabled="@Disabled" />
+        <button type="button"
+                class="btn btn-success"
+                @onclick="SubmitAsync"
+                disabled="@Disabled">
+            Guess
+        </button>
+    </div>
+
+    @if (_open && !Disabled)
+    {
+        <ul id="guess-suggestions" class="suggestion-list list-unstyled mb-0" role="listbox" aria-label="Company suggestions">
+            @if (_matches.Count == 0)
+            {
+                <li class="suggestion-empty text-body-secondary small">No matching companies.</li>
+            }
+            else
+            {
+                @for (var index = 0; index < _matches.Count; index++)
+                {
+                    var itemIndex = index;
+                    var company = _matches[itemIndex];
+                    <li id="guess-option-@itemIndex"
+                        role="option"
+                        aria-selected="@(itemIndex == _activeIndex ? "true" : "false")"
+                        class="suggestion-item @(itemIndex == _activeIndex ? "active" : null)"
+                        @onmousedown:preventDefault="true"
+                        @onclick="() => ChooseAsync(company)">
+                        <span>@company.Name</span>
+                        <span class="text-body-secondary small">@company.Id.ToUpperInvariant()</span>
+                    </li>
+                }
+            }
+        </ul>
+    }
+
+    @if (_error is not null)
+    {
+        <div class="small text-warning mt-1" role="alert">@_error</div>
+    }
+</div>
+
+@code {
+    [Parameter, EditorRequired]
+    public IReadOnlyList<Company> Companies { get; set; } = [];
+
+    [Parameter]
+    public EventCallback<Company> OnGuess { get; set; }
+
+    [Parameter]
+    public bool Disabled { get; set; }
+
+    private string _query = string.Empty;
+    private List<Company> _matches = [];
+    private int _activeIndex = -1;
+    private bool _open;
+    private string? _error;
+
+    private string? ActiveDescendant =>
+        _activeIndex >= 0 && _activeIndex < _matches.Count ? $"guess-option-{_activeIndex}" : null;
+
+    public void Clear()
+    {
+        _query = string.Empty;
+        _matches.Clear();
+        _activeIndex = -1;
+        _open = false;
+        _error = null;
+    }
+
+    private void OnInput(ChangeEventArgs args)
+    {
+        _query = args.Value?.ToString() ?? string.Empty;
+        _error = null;
+        UpdateMatches();
+        _open = !string.IsNullOrWhiteSpace(_query);
+    }
+
+    private void OnFocus()
+    {
+        if (!string.IsNullOrWhiteSpace(_query))
+        {
+            UpdateMatches();
+            _open = true;
+        }
+    }
+
+    private async Task OnKeyDown(KeyboardEventArgs args)
+    {
+        switch (args.Key)
+        {
+            case "ArrowDown":
+                if (_matches.Count > 0)
+                {
+                    _activeIndex = (_activeIndex + 1) % _matches.Count;
+                    _open = true;
+                }
+                break;
+            case "ArrowUp":
+                if (_matches.Count > 0)
+                {
+                    _activeIndex = _activeIndex <= 0 ? _matches.Count - 1 : _activeIndex - 1;
+                    _open = true;
+                }
+                break;
+            case "Escape":
+                _open = false;
+                _activeIndex = -1;
+                break;
+            case "Enter":
+                await SubmitAsync();
+                break;
+        }
+    }
+
+    private async Task SubmitAsync()
+    {
+        if (Disabled)
+        {
+            return;
+        }
+
+        Company? selected = _activeIndex >= 0 && _activeIndex < _matches.Count
+            ? _matches[_activeIndex]
+            : _matches.FirstOrDefault();
+
+        if (selected is null && !string.IsNullOrWhiteSpace(_query))
+        {
+            selected = Companies.FirstOrDefault(company =>
+                string.Equals(company.Name, _query.Trim(), StringComparison.OrdinalIgnoreCase)
+                || string.Equals(company.Id, _query.Trim(), StringComparison.OrdinalIgnoreCase)
+                || company.Aliases.Any(alias =>
+                    string.Equals(alias, _query.Trim(), StringComparison.OrdinalIgnoreCase)));
+        }
+
+        if (selected is null)
+        {
+            _error = "Choose a company from the list.";
+            _open = true;
+            return;
+        }
+
+        await ChooseAsync(selected);
+    }
+
+    private async Task ChooseAsync(Company company)
+    {
+        _query = string.Empty;
+        _matches.Clear();
+        _activeIndex = -1;
+        _open = false;
+        _error = null;
+        await OnGuess.InvokeAsync(company);
+    }
+
+    private void UpdateMatches()
+    {
+        var query = _query.Trim();
+        if (query.Length == 0)
+        {
+            _matches = [];
+            _activeIndex = -1;
+            return;
+        }
+
+        _matches = Companies
+            .Where(company =>
+                company.Name.Contains(query, StringComparison.OrdinalIgnoreCase)
+                || company.Id.Contains(query, StringComparison.OrdinalIgnoreCase)
+                || company.Aliases.Any(alias => alias.Contains(query, StringComparison.OrdinalIgnoreCase)))
+            .OrderByDescending(company =>
+                company.Name.StartsWith(query, StringComparison.OrdinalIgnoreCase)
+                || company.Id.Equals(query, StringComparison.OrdinalIgnoreCase))
+            .ThenBy(company => company.Name, StringComparer.OrdinalIgnoreCase)
+            .Take(12)
+            .ToList();
+
+        _activeIndex = _matches.Count > 0 ? 0 : -1;
+    }
+}

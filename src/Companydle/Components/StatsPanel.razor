@@ -1,0 +1,77 @@
+@using Companydle.Models
+
+<section class="card bg-body-tertiary border-secondary mt-3" aria-labelledby="stats-title">
+    <div class="card-body">
+        <div class="d-flex align-items-center justify-content-between gap-2 mb-3">
+            <h2 id="stats-title" class="h5 text-success-emphasis mb-0">Stats</h2>
+            <button type="button" class="btn btn-outline-secondary btn-sm" @onclick="OnClose" aria-label="Close stats">
+                Close
+            </button>
+        </div>
+
+        <div class="row row-cols-2 row-cols-md-4 g-2 text-center mb-4">
+            <div class="col">
+                <div class="stat-value">@Stats.Played</div>
+                <div class="stat-label">Played</div>
+            </div>
+            <div class="col">
+                <div class="stat-value">@NumberFormatter.FormatPercent(StatsCalculator.WinPercent(Stats))</div>
+                <div class="stat-label">Win %</div>
+            </div>
+            <div class="col">
+                <div class="stat-value">@Stats.CurrentStreak</div>
+                <div class="stat-label">Current streak</div>
+            </div>
+            <div class="col">
+                <div class="stat-value">@Stats.MaxStreak</div>
+                <div class="stat-label">Max streak</div>
+            </div>
+        </div>
+
+        <h3 class="h6">Guess distribution</h3>
+        @if (Stats.Played == 0)
+        {
+            <p class="text-body-secondary mb-2">No daily games completed yet.</p>
+        }
+        else
+        {
+            <div class="distribution">
+                @for (var index = 0; index < Stats.Distribution.Length; index++)
+                {
+                    var bucket = index;
+                    var label = bucket == GameRules.MaxGuesses ? "Fail" : (bucket + 1).ToString();
+                    var count = Stats.Distribution[bucket];
+                    var width = count == 0
+                        ? 0
+                        : Math.Max(2, (int)Math.Round(count * 100d / Math.Max(1, Stats.Distribution.Max())));
+                    <div class="distribution-row" aria-label="@($"Solved in {label}: {count}")">
+                        <span class="distribution-label">@label</span>
+                        <div class="progress flex-grow-1"
+                             role="progressbar"
+                             aria-valuenow="@count"
+                             aria-valuemin="0"
+                             aria-valuemax="@Math.Max(1, Stats.Distribution.Max())"
+                             aria-label="@($"Solved in {label}: {count}")">
+                            <div class="progress-bar @(bucket == GameRules.MaxGuesses ? "bg-secondary" : "bg-success")"
+                                 style="width:@width%">
+                                @count
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+
+        <p class="small text-body-secondary mb-0 mt-3">
+            Daily puzzles only. Archive games are saved separately and do not affect these stats.
+        </p>
+    </div>
+</section>
+
+@code {
+    [Parameter, EditorRequired]
+    public GameStats Stats { get; set; } = default!;
+
+    [Parameter]
+    public EventCallback OnClose { get; set; }
+}
