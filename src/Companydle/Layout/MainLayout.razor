@@ -1,7 +1,14 @@
 ﻿@inherits LayoutComponentBase
 
 <div class="position-relative min-vh-100">
-    <a class="btn btn-outline-secondary btn-sm position-absolute top-0 start-0 m-3" href="/">&larr; Portfolio</a>
+    <div class="position-absolute top-0 start-0 m-3 d-flex gap-2">
+        <a class="btn btn-outline-secondary btn-sm" href="/">&larr; Portfolio</a>
+        <a class="btn btn-outline-secondary btn-sm"
+           href="https://github.com/Timotheus1907/companydle"
+           target="_blank"
+           rel="noopener noreferrer"
+           aria-label="View the Companydle source on GitHub">GitHub</a>
+    </div>
 
     <main class="container pb-5 game-shell">
         @Body
