@@ -56,7 +56,9 @@ public sealed class GameStateService(IStateStorage storage)
             }
         }
 
-        if (EnsureDaily(_cached, today, todayPuzzleNumber))
+        var changed = EnsureDaily(_cached, today, todayPuzzleNumber);
+        changed |= StatsCalculator.ResetMissedStreak(_cached.Stats, today);
+        if (changed)
         {
             await SaveAsync(_cached);
         }

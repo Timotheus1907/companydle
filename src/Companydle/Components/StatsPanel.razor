@@ -19,7 +19,7 @@
                 <div class="stat-label">Win %</div>
             </div>
             <div class="col">
-                <div class="stat-value">@Stats.CurrentStreak</div>
+                <div class="stat-value">@StatsCalculator.CurrentStreakForDate(Stats, Today)</div>
                 <div class="stat-label">Current streak</div>
             </div>
             <div class="col">
@@ -74,4 +74,7 @@
 
     [Parameter]
     public EventCallback OnClose { get; set; }
+
+    [Parameter]
+    public DateOnly Today { get; set; }
 }

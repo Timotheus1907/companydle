@@ -41,6 +41,10 @@ async function onActivate(event) {
     await Promise.all(cacheKeys
         .filter(key => key.startsWith(cacheNamePrefix) && key !== cacheName)
         .map(key => caches.delete(key)));
+
+    // Take control immediately so a waiting update can show its reload state
+    // without requiring the user to close every app window.
+    await self.clients.claim();
 }
 
 async function onFetch(event) {

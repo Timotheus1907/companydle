@@ -117,4 +117,45 @@ public class StatsCalculatorTests
             StatsCalculator.WinPercent(stats),
             Is.EqualTo(expected).Within(0.001));
     }
+
+    [Test]
+    public void ResetMissedStreak_ClearsAfterAFullMissedDay()
+    {
+        var stats = new GameStats
+        {
+            CurrentStreak = 4,
+            MaxStreak = 4,
+            LastCompletedDate = new DateOnly(2026, 10, 18),
+        };
+
+        var changed = StatsCalculator.ResetMissedStreak(stats, new DateOnly(2026, 10, 20));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(changed, Is.True);
+            Assert.That(stats.CurrentStreak, Is.EqualTo(0));
+            Assert.That(stats.MaxStreak, Is.EqualTo(4));
+        });
+    }
+
+    [Test]
+    public void CurrentStreakForDate_KeepsYesterdayAndHidesOlderResults()
+    {
+        var yesterday = new GameStats
+        {
+            CurrentStreak = 3,
+            LastCompletedDate = new DateOnly(2026, 10, 19),
+        };
+        var stale = new GameStats
+        {
+            CurrentStreak = 3,
+            LastCompletedDate = new DateOnly(2026, 10, 18),
+        };
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(StatsCalculator.CurrentStreakForDate(yesterday, new DateOnly(2026, 10, 20)), Is.EqualTo(3));
+            Assert.That(StatsCalculator.CurrentStreakForDate(stale, new DateOnly(2026, 10, 20)), Is.EqualTo(0));
+        });
+    }
 }

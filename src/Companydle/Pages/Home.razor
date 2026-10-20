@@ -154,7 +154,7 @@
             @if (CurrentFinished && GuessCount > 0)
             {
                 <div class="d-flex flex-wrap gap-2 mb-3">
-                    <button type="button" class="btn btn-success" @onclick="ShareAsync">Share result</button>
+                    <ShareButton OnShare="ShareAsync" />
                 </div>
             }
 
@@ -168,7 +168,7 @@
             @if (_showStats && _state is not null)
             {
                 <div id="stats-panel">
-                    <StatsPanel Stats="_state.Stats" OnClose="CloseStats" />
+                    <StatsPanel Stats="_state.Stats" Today="_today" OnClose="CloseStats" />
                 </div>
             }
         </div>

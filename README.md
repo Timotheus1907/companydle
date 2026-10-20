@@ -25,6 +25,18 @@ visit.
 - Previous puzzles are available in the archive selector. Archive progress is
   saved separately and never changes daily statistics.
 
+## Daily puzzle and archive
+
+Puzzle number `N` is the number of local calendar days since
+`GameRules.LaunchDate` (`2026-10-19` in this build). Puzzle `0` is launch day;
+puzzle `1` is `2026-10-20`. The answer is `answerOrder[N % answerOrder.Length]`.
+To set a new launch date, change `LaunchDate` before the first public puzzle and
+update the documented date and `dataAsOf` with it.
+
+The archive selector exposes puzzle numbers `0` through `N - 1` (newest first).
+Archive progress is stored under its own archive entry and never updates daily
+statistics.
+
 ## Statistics
 
 The Stats panel shows daily-only played count, win percentage, current streak,
@@ -64,12 +76,13 @@ state persistence/fallback behavior.
 ## Publish
 
 ```powershell
-dotnet publish src/Companydle/Companydle.csproj -c Release
+dotnet publish src/Companydle/Companydle.csproj -c Release -o publish -p:GHPages=true -p:GHPagesBase=/companydle/
 ```
 
 The project uses `PublishSPAforGitHubPages.Build` to rewrite the published
 `<base href>` to `/companydle/`. The committed source keeps `<base href="/" />`
-so local development works without the GitHub Pages base path.
+so local development works without the GitHub Pages base path. The workflow also
+patches the published service worker's `const base` value; see below.
 
 The generated `wwwroot/service-worker.published.js` handles the project-site
 scope and precaches the bundled company data. No external API calls are made at
@@ -83,8 +96,10 @@ Development builds use a deliberate no-op service worker, so offline caching
 must be tested against the published output:
 
 1. Publish with `dotnet publish src/Companydle/Companydle.csproj -c Release -o publish -p:GHPages=true -p:GHPagesBase=/companydle/`.
-2. Serve `publish/wwwroot` under a `/companydle/` URL prefix (the deploy workflow
-   does this on GitHub Pages).
+2. For a manual local test, change `const base = "/";` to
+   `const base = "/companydle/";` in `publish/wwwroot/service-worker.js` (the
+   deploy workflow does this automatically), then serve `publish/wwwroot` under
+   a `/companydle/` URL prefix.
 3. Open the site once and confirm the service worker scope is
    `/companydle/` and the manifest and icons load.
 4. In DevTools → Application → Service Workers, tick **Offline** and reload. The
@@ -101,7 +116,26 @@ rates, overrides and data limitations.
 
 `answerOrder` is append-only. Existing answer slots must never be reordered or
 removed. `tools/AnswerOrderGenerator` can append new candidate IDs using the
-stable FNV-1a ordering while preserving the existing prefix.
+stable FNV-1a ordering while preserving the existing prefix. When editing data:
+
+1. Add the company with all required fields, mark candidates explicitly and use
+   `medium` confidence unless every field has been checked against a primary
+   source.
+2. Append candidate IDs to `answerOrder`; never insert them in the middle.
+3. Run `dotnet test Companydle.sln -c Release` and update
+   `docs/DATA_SOURCES.md` for new filing periods or exceptions.
+
+If the app is already deployed, changing the logic or data changes the service
+worker asset hash. The next visit installs the new worker and shows the update
+banner.
+
+## Deployment
+
+The checked-in workflow at `.github/workflows/deploy.yml` runs on pushes to
+`main` and manual dispatches. It tests, publishes with
+`-p:GHPages=true -p:GHPagesBase=/companydle/`, patches the published service
+worker base to `/companydle/`, and deploys `publish/wwwroot` with GitHub Pages.
+The repository must have Pages enabled for that workflow to publish.
 
 ## Project layout
 

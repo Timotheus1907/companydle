@@ -7,6 +7,7 @@
     let updateCallback = null;
     let updateReady = false;
     let reloading = false;
+    let hadController = !!navigator.serviceWorker.controller;
 
     function notifyUpdate() {
         updateReady = true;
@@ -30,6 +31,15 @@
     window.companydleApplyUpdate = function () {
         if (registration && registration.waiting) {
             registration.waiting.postMessage('SKIP_WAITING');
+
+            // controllerchange normally reloads first. This fallback covers
+            // browsers that take a little longer to hand over control.
+            setTimeout(function () {
+                if (!reloading) {
+                    reloading = true;
+                    location.reload();
+                }
+            }, 1000);
             return;
         }
 
@@ -37,6 +47,13 @@
     };
 
     navigator.serviceWorker.addEventListener('controllerchange', function () {
+        if (!hadController) {
+            // The first service worker claimed this page after its first load.
+            // No reload is needed on that initial install.
+            hadController = true;
+            return;
+        }
+
         if (reloading) {
             return;
         }
@@ -52,7 +69,7 @@
                 { updateViaCache: 'none' });
             window.__companydleRegistration = registration;
 
-            if (registration.waiting && navigator.serviceWorker.controller) {
+            if (registration.waiting && hadController) {
                 notifyUpdate();
             }
 
@@ -63,7 +80,7 @@
                 }
 
                 installing.addEventListener('statechange', function () {
-                    if (installing.state === 'installed' && navigator.serviceWorker.controller) {
+                    if (installing.state === 'installed' && hadController) {
                         notifyUpdate();
                     }
                 });

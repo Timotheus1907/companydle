@@ -11,6 +11,41 @@ public static class StatsCalculator
         stats.Played == 0 ? 0 : stats.Wins * 100d / stats.Played;
 
     /// <summary>
+    /// Clears a stale current streak when at least one complete local day has
+    /// passed without a result. Yesterday's win still counts, because the
+    /// player can continue the streak with today's puzzle.
+    /// </summary>
+    public static bool ResetMissedStreak(GameStats stats, DateOnly today)
+    {
+        ArgumentNullException.ThrowIfNull(stats);
+
+        if (stats.CurrentStreak <= 0
+            || (stats.LastCompletedDate is { } last && last >= today.AddDays(-1)))
+        {
+            return false;
+        }
+
+        stats.CurrentStreak = 0;
+        return true;
+    }
+
+    /// <summary>
+    /// Returns the streak that should be visible for the supplied local date.
+    /// The stored value can be stale if the app was closed for a day.
+    /// </summary>
+    public static int CurrentStreakForDate(GameStats stats, DateOnly today)
+    {
+        ArgumentNullException.ThrowIfNull(stats);
+
+        if (stats.CurrentStreak <= 0 || stats.LastCompletedDate is not { } last)
+        {
+            return 0;
+        }
+
+        return last >= today.AddDays(-1) ? stats.CurrentStreak : 0;
+    }
+
+    /// <summary>
     /// Records one completed daily puzzle. Calling this twice for the same date
     /// is a no-op, which makes recovery from an interrupted save safe.
     /// </summary>
