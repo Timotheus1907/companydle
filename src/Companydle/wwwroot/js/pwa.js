@@ -28,22 +28,38 @@
         updateCallback = null;
     };
 
-    window.companydleApplyUpdate = function () {
-        if (registration && registration.waiting) {
-            registration.waiting.postMessage('SKIP_WAITING');
-
-            // controllerchange normally reloads first. This fallback covers
-            // browsers that take a little longer to hand over control.
-            setTimeout(function () {
-                if (!reloading) {
-                    reloading = true;
-                    location.reload();
-                }
-            }, 1000);
+    function reloadPage() {
+        if (reloading) {
             return;
         }
 
+        reloading = true;
         location.reload();
+    }
+
+    window.companydleApplyUpdate = function () {
+        const waiting = registration && registration.waiting;
+
+        if (!waiting) {
+            reloadPage();
+            return;
+        }
+
+        if (waiting.state === 'activated') {
+            reloadPage();
+            return;
+        }
+
+        // Wait until the new worker has actually activated before reloading.
+        // Reloading on a timer can beat a slow activation and bring the banner
+        // back because the old worker is still in control.
+        waiting.addEventListener('statechange', function () {
+            if (waiting.state === 'activated') {
+                reloadPage();
+            }
+        });
+
+        waiting.postMessage('SKIP_WAITING');
     };
 
     navigator.serviceWorker.addEventListener('controllerchange', function () {
@@ -54,12 +70,7 @@
             return;
         }
 
-        if (reloading) {
-            return;
-        }
-
-        reloading = true;
-        location.reload();
+        reloadPage();
     });
 
     (async function () {
