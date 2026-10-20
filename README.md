@@ -5,7 +5,7 @@ static, client-only PWA designed for GitHub Pages at
 `https://timotheus1907.github.io/companydle/` and works offline after the first
 visit.
 
-> **Disclaimer:** This project is quite different from the rest of my projects as it was generated with **DeepSeek-V4.1-Flash-1017**.
+> **Disclaimer:** This project is quite different from the rest of my projects as it was generated completely with **DeepSeek-V4.1-Flash-1017**.
 
 ## Requirements
 
